@@ -64,8 +64,26 @@ export const getProduct = async (req, res, next) => {
     next(error);
   }
 };
+export const getProductParams = async (req, res, next) => {
+  const { ...otthers } = req.query;
+  console.log("🚀 ~ file: products.js:69 ~ getProductParams ~ otthers:", otthers)
+
+  try {
+    const products = await Product.find({
+      ...otthers
+    })
+
+    return res.status(200).json(products)
+  } catch (error) {
+    next(error);
+  }
+}
 export const getProducts = async (req, res, next) => {
-  const { min, max, categories } = req.query;
+  const { categories } = req.query;
+  const newProduct = req.query.new;
+  console.log("🚀 ~ file: products.js:70 ~ getProducts ~ newProduct:", typeof newProduct)
+  const min = parseInt(req.query.min) || 1;
+  const max = parseInt(req.query.max) || 999999999;
   const limit = parseInt(req.query.limit) || 9;
   const page = parseInt(req.query.page) || 1;
   let sort = req.query.sort;
@@ -85,18 +103,13 @@ export const getProducts = async (req, res, next) => {
     } else {
       sortBy[sort[0]] = 1;
     }
-    console.log("🚀 ~ file: products.js:77 ~ getProducts ~ sortBy:");
-    let lop = parseInt(sortBy.title);
-    console.log("🚀 ~ file: products.js:84 ~ getProducts ~ lop:", lop);
-    console.log("🚀 ~ file: products.js:87 ~ getProducts ~ sortBy:", sortBy);
-
     let query;
     if (req.query.categories) {
       query = Product.aggregate([
         {
           $match: {
             categories: categories,
-            price: { $gt: min || 1, $lt: max || 9999999 },
+            price: { $gt: min, $lt: max },
           },
         },
         {
@@ -124,7 +137,7 @@ export const getProducts = async (req, res, next) => {
       query = Product.aggregate([
         {
           $match: {
-            price: { $gt: min || 1, $lt: max || 9999999 },
+            price: { $gt: min , $lt: max  },
           },
         },
         {

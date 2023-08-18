@@ -3,6 +3,7 @@ import {
   createProduct,
   deleteProduct,
   getProduct,
+  getProductParams,
   getProducts,
   searchProduct,
   updateProduct,
@@ -22,7 +23,13 @@ router.delete("/:id", deleteProduct);
 //get
 router.get("/search", searchProduct);
 
+router.get("/params", getProductParams);
+
 router.get("/:slug", getProduct);
+
 router.get("/", getProducts);
+
+
+
 
 export default router;

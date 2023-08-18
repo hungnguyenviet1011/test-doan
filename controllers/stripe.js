@@ -5,10 +5,7 @@ dotenv.config();
 const stripe = Stripe(process.env.STRIPE_KEY);
 
 export const checkoutPayment = async (req, res) => {
-  console.log(
-    "🚀 ~ file: stripe.js:12 ~ checkoutPayment ~ req.body.cartItems:",
-    req.body.cartItems
-  );
+  console.log("🚀 ~ file: stripe.js:8 ~ checkoutPayment ~ req:", req.body);
   const customer = await stripe.customers.create({
     metadata: {
       userId: req.body.userId,
@@ -34,7 +31,7 @@ export const checkoutPayment = async (req, res) => {
             id: item.uuid,
           },
         },
-        unit_amount: Math.round(item.cartItem.price * 1000),
+        unit_amount: Math.round(item.cartItem.price),
       },
       quantity: item.quantity,
     };

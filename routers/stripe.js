@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import { checkoutPayment } from "../controllers/stripe.js";
 import Order from "../models/Order.js";
 import OrderItem from "../models/OrderItem.js";
+import Product from "../models/Product.js";
 
 dotenv.config();
 const stripe = Stripe(process.env.STRIPE_KEY);
@@ -17,57 +18,95 @@ const createOrder = async (customer, data) => {
   console.log("🚀 ~ file: stripe.js:16 ~ createOrder ~ customer:", customer);
   const item = JSON.parse(customer.metadata.cart);
   console.log("🚀 ~ file: stripe.js:18 ~ createOrder ~ item:", item);
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log("1111");
+      const promies = item.map(async (order) => {
+        const productData = await Product.findByIdAndUpdate(
+          {
+            _id: order.cartId,
+            quantity: order.quantity,
+          },
+          {
+            $inc: {
+              quantity: -order.quantity,
+              selled: +order.quantity,
+            },
+          },
+          { new: true }
+        );
+        if (productData) {
+          return {
+            status: "OK",
+            message: "SUCCESS",
+          };
+        } else {
+          return {
+            status: "OK",
+            message: "FAILURE",
+            id: order.cartId,
+          };
+        }
+      });
+      console.log("2222");
+      const result = await Promise.all(promies);
+      const dataRes = result && result.filter((item) => item.id);
+      console.log("🚀 ~ file: stripe.js:54 ~ returnnewPromise ~ data:", data)
+      if (dataRes.length) {
+        console.log("33331111")
+        return {
+          status: "OK",
+          message: `San phẩm với id ${data.join(", ")} không đủ hàng`,
+        };
+      } else {
+        console.log("3333")
+        const orderItem = Promise.all(
+          item.map(async (order) => {
+            console.log("🚀 ~ file: stripe.js:65 ~ item.map ~ order:", order)
+            let orderItemNew = new OrderItem({
+              quantity: order.quantity,
+              product: order.cartId,
+              size: order.size,
+              color: order.color,
+            });
 
-  try {
-    const orderItem = Promise.all(
-      item.map(async (order) => {
-        let orderItemNew = new OrderItem({
-          quantity: order.quantity,
-          product: order.cartId,
-          size: order.size,
-          color: order.color,
+            orderItemNew = await orderItemNew.save();
+            console.log("🚀 ~ file: stripe.js:74 ~ item.map ~ orderItemNew:", orderItemNew)
+
+            return orderItemNew._id;
+          })
+        );
+        const orderItemDB = await orderItem;
+        console.log("🚀 ~ file: stripe.js:79 ~ returnnewPromise ~ e:", orderItem)
+
+        const orderList = new Order({
+          orderItems: orderItemDB,
+          subTotal: data.amount_subtotal,
+          total: data.amount_total,
+          shipping: data.customer_details,
+          user: customer.metadata.userId,
         });
 
-        orderItemNew = await orderItemNew.save();
+        const saveDB = await orderList.save();
 
-        return orderItemNew._id;
-      })
-    );
-
-    const orderItemDB = await orderItem;
-
-    const orderList = new Order({
-      orderItems: orderItemDB,
-      subTotal: data.amount_subtotal,
-      total: data.amount_total,
-      shipping: data.customer_details,
-      user: customer.metadata.userId,
-    });
-
-    const saveDB = await orderList.save();
-
-    console.log("success", saveDB);
-  } catch (error) {
-    console.log(error);
-  }
+        console.log("success", saveDB);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  });
 };
 
 let endpointSecret;
-// endpointSecret =
-//   "whsec_3cc6fd5066ad7342a54701348dbe61c647aef39c54c799f3763c36cfb6fd9da3";
-
+// endpointSecret = process.env.WEBHOOK_SECRET_KEY;
 router.post(
   "/webhook",
   bodyParser.raw({ type: "application/json" }),
   (req, res) => {
     let event = req.body;
-    // Only verify the event if you have an endpoint secret defined.
-    // Otherwise use the basic event deserialized with JSON.parse
-
     let data;
     let eventType;
     if (endpointSecret) {
-      // Get the signature sent by Stripe
       const signature = req.headers["stripe-signature"];
       try {
         event = stripe.webhooks.constructEvent(
@@ -80,7 +119,6 @@ router.post(
         console.log(`⚠️  Webhook signature verification failed.`, err.message);
         return res.sendStatus(400);
       }
-
       data = event.data.object;
       event = event.type;
     } else {
@@ -89,23 +127,39 @@ router.post(
     }
 
     // Handle the event
-    if (eventType === "checkout.session.completed") {
-      stripe.customers
-        .retrieve(data.customer)
-        .then((customer) => {
-          console.log(
-            "🚀 ~ file: stripe.js:53 ~ stripe.customers.retrieve ~ customer:",
-            customer
-          );
-          console.log("data", data);
+    if (eventType === "checkout.session.completed") {      
+      const payload = async () => {
+        const balance = await stripe.balance.retrieve({
+          stripeAccount: 'acct_1NFT25IGQxX8cRSA',
+        });  
+        console.log("🚀 ~ file: stripe.js:136 ~ balance:", balance)
+        
+        return balance
+      }
+      console.log("🚀 ~ file: stripe.js:132 ~ payload ~ payload:", payload)
+      
+      // stripe.customers
+      // .retrieve(data.customer)
+      //   .then((customer) => {
+      //     console.log(
+      //       "🚀 ~ file: stripe.js:53 ~ stripe.customers.retrieve ~ customer:",
+      //       customer
+      //     );
+      //     console.log("data", data);
 
-          createOrder(customer, data);
-        })
-        .catch((err) => console.log(err));
+      //     createOrder(customer, data);
+      //   })
+      //   .catch((err) => console.log(err));
     }
 
     // Return a 200 res to acknowledge receipt of the event
     res.send();
   }
 );
+
+
+
+
+
+
 export default router;

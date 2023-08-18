@@ -30,6 +30,7 @@ const productSchema = new Schema(
     quantity: {
       type: Number,
       required: true,
+      min: 0
     },
     thumbnail: {
       type: String,
@@ -60,6 +61,9 @@ const productSchema = new Schema(
     categories: {
       type: [String],
       ref: "category",
+    },
+    selled: { 
+      type: Number 
     },
   },
   { timestamps: true }

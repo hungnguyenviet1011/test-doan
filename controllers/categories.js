@@ -1,4 +1,5 @@
 import Category from "../models/Category.js";
+import slugify from "slugify";
 
 export const createCategory = async (req, res, next) => {
   if (req.body.name) {
@@ -17,6 +18,11 @@ export const createCategory = async (req, res, next) => {
 
 export const updateCategory = async (req, res, next) => {
   const categoryId = req.params.id;
+  if (req.body.name) {
+    req.body.slug = slugify(req.body.name, {
+      lower: true,
+    });
+  }
   try {
     await Category.findByIdAndUpdate(
       categoryId,

@@ -8,6 +8,7 @@ import productRoute from "./routers/products.js";
 import userRoute from "./routers/users.js";
 import stripeRouter from "./routers/stripe.js";
 import cors from "cors";
+import bodyParser from "body-parser";
 
 const app = express();
 dotenv.config();
