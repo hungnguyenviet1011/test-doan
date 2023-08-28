@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+const { Schema } = mongoose;
 
-const orderItemSchema = mongoose.Schema({
+const orderItemSchema = Schema({
   quantity: {
     type: Number,
     required: true,

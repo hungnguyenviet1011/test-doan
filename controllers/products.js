@@ -1,21 +1,41 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import slugify from "slugify";
+import Size from "../models/Size.js";
+import mongoose from "mongoose";
 
 export const createProduct = async (req, res, next) => {
   const categoryId = req.body.categories;
+  console.log(
+    "🚀 ~ file: products.js:8 ~ createProduct ~ categories:",
+    req.body.size
+  );
 
   if (req.body.title) {
     req.body.slug = slugify(req.body.title, {
       lower: true,
     });
   }
-  console.log(
-    "🚀 ~ file: products.js:10 ~ createProduct ~ req.body.slug:",
-    req.body.slug
-  );
-  const product = new Product(req.body);
+
   try {
+    const sizeItem = Promise.all(
+      req.body.size.map(async (size) => {
+        let sizeOne = new Size({
+          size: size.size,
+          quantity: size.quantity,
+        });
+        sizeOne = await sizeOne.save();
+
+        return sizeOne._id;
+      })
+    );
+
+    const sizeDB = await sizeItem;
+
+    const product = new Product({
+      ...req.body,
+      size: sizeDB,
+    });
     const productDB = await product.save();
     try {
       await Category.findByIdAndUpdate(categoryId, {
@@ -24,7 +44,7 @@ export const createProduct = async (req, res, next) => {
     } catch (error) {
       next(error);
     }
-    res.status(200).json(productDB);
+    res.status(200).json({ status: 200, productDB });
   } catch (error) {
     next(error);
   }
@@ -32,14 +52,30 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   const slugProduct = req.params.slug;
   try {
+    if (req.body.size) {
+      req.body.size.map(async (item) => {
+        console.log(
+          "🚀 ~ file: products.js:57 ~ req.body.size.map ~ item:",
+          item
+        );
+        return await Size.updateMany(
+          { _id: item._id },
+          { $set: { quantity: item.quantity } },
+          { new: true }
+        );
+      });
+    }
     const updateProduct = await Product.findOneAndUpdate(
       {
         slug: slugProduct,
       },
       { $set: req.body },
       { new: true }
-    );
-    res.status(200).json(updateProduct);
+    ).populate("size");
+    res.status(200).json({
+      status: 200,
+      updateProduct,
+    });
   } catch (error) {
     next(error);
   }
@@ -49,8 +85,49 @@ export const updateProduct = async (req, res, next) => {
 export const deleteProduct = async (req, res, next) => {
   const idProduct = req.params.id;
   try {
-    await Product.findByIdAndDelete(idProduct);
-    res.status(200).json("Delete Product success");
+    await Product.findByIdAndRemove(idProduct).then((productItem) => {
+      console.log(
+        "🚀 ~ file: products.js:73 ~ awaitProduct.findByIdAndDelete ~ product:",
+        productItem
+      );
+      productItem.size.map(async (size) => {
+        console.log("LOP", size);
+        await Size.deleteMany({
+          _id: size,
+        });
+      });
+
+      productItem?.categories.map(async (categories) => {
+        const item = await Category.aggregate([
+          {
+            $match: { _id: { $in: [categories] } },
+          },
+          {
+            $unwind: "$products",
+          },
+          { $match: { products: { $eq: idProduct } } },
+        ]);
+        console.log(
+          "🚀 ~ file: products.js:94 ~ productItem?.categories.map ~ item:",
+          item
+        );
+        console.log(
+          "🚀 ~ file: products.js:105 ~ productItem?.categories.map ~ categories:",
+          categories
+        );
+
+        const DB = await Category.updateMany(
+          {},
+          { $pull: { products: item.products } },
+          { multi: true }
+        );
+        console.log(
+          "🚀 ~ file: products.js:108 ~ productItem?.categories.map ~ DB:",
+          DB
+        );
+        res.status(200).json(DB);
+      });
+    });
   } catch (error) {
     next(error);
   }
@@ -58,7 +135,9 @@ export const deleteProduct = async (req, res, next) => {
 export const getProduct = async (req, res, next) => {
   const slugProduct = req.params.slug;
   try {
-    const product = await Product.findOne({ slug: slugProduct });
+    const product = await Product.findOne({ slug: slugProduct }).populate(
+      "size"
+    );
     res.status(200).json(product);
   } catch (error) {
     next(error);
@@ -66,22 +145,32 @@ export const getProduct = async (req, res, next) => {
 };
 export const getProductParams = async (req, res, next) => {
   const { ...otthers } = req.query;
-  console.log("🚀 ~ file: products.js:69 ~ getProductParams ~ otthers:", otthers)
+  console.log(
+    "🚀 ~ file: products.js:69 ~ getProductParams ~ otthers:",
+    otthers
+  );
 
   try {
     const products = await Product.find({
-      ...otthers
-    })
+      ...otthers,
+    });
 
-    return res.status(200).json(products)
+    return res.status(200).json(products);
   } catch (error) {
     next(error);
   }
-}
+};
 export const getProducts = async (req, res, next) => {
-  const { categories } = req.query;
+  let categories = new mongoose.Types.ObjectId(req.query.categories);
+  console.log(
+    "🚀 ~ file: products.js:107 ~ getProducts ~ categories:",
+    typeof categories
+  );
   const newProduct = req.query.new;
-  console.log("🚀 ~ file: products.js:70 ~ getProducts ~ newProduct:", typeof newProduct)
+  console.log(
+    "🚀 ~ file: products.js:70 ~ getProducts ~ newProduct:",
+    typeof newProduct
+  );
   const min = parseInt(req.query.min) || 1;
   const max = parseInt(req.query.max) || 999999999;
   const limit = parseInt(req.query.limit) || 9;
@@ -113,6 +202,15 @@ export const getProducts = async (req, res, next) => {
           },
         },
         {
+          $lookup: {
+            from: "categories",
+            localField: "categories",
+            foreignField: "_id",
+            as: "categories",
+          },
+        },
+
+        {
           $facet: {
             metaData: [
               {
@@ -137,9 +235,18 @@ export const getProducts = async (req, res, next) => {
       query = Product.aggregate([
         {
           $match: {
-            price: { $gt: min , $lt: max  },
+            price: { $gt: min, $lt: max },
           },
         },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "categories",
+            foreignField: "_id",
+            as: "categories",
+          },
+        },
+
         {
           $facet: {
             metaData: [
@@ -163,8 +270,17 @@ export const getProducts = async (req, res, next) => {
       ]);
     }
 
+    console.log("🚀 ~ file: products.js:173 ~ getProducts ~ query:", query);
+    // const test = await Product.populate(query, {
+    //   path: "categories",
+    //   model: categories,
+    // });
+
     const product = await query;
-    res.status(200).json(product);
+    res.status(200).json({
+      metaData: product[0].metaData,
+      data: product[0].data,
+    });
   } catch (error) {
     next(error);
   }
@@ -173,7 +289,7 @@ export const getProducts = async (req, res, next) => {
 export const searchProduct = async (req, res, next) => {
   const search = req.query.search || "";
   const min = parseInt(req.query.min) || 1;
-  const max = parseInt(req.query.max) || 999999;
+  const max = parseInt(req.query.max) || 99999999;
   let sort = req.query.sort;
   try {
     req.query.sort ? (sort = req.query.sort.split(",")) : (sort = [sort]);

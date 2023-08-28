@@ -12,7 +12,8 @@ export const checkoutPayment = async (req, res) => {
       cart: JSON.stringify(
         req.body.cartItems.map((item) => ({
           cartId: item.cartItem._id,
-          size: item.selectSize,
+          size: item.selectSize.size,
+          sizeId: item.selectSize.id,
           quantity: item.quantity,
           color: item.color,
         }))

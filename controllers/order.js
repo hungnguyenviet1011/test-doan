@@ -3,13 +3,15 @@ import OrderItem from "../models/OrderItem.js";
 import { createError } from "../utils/error.js";
 export const getOrders = async (req, res, next) => {
   try {
-    // const orderList = await Order.find()
-    //   .populate({
-    //     path: "orderItems",
-    //     populate: { path: "product" },
-    //   })
-    //   .populate("user");
-    const orderList = await Order.find();
+    const orderList = await Order.find()
+      .populate({
+        path: "orderItems",
+        populate: {
+          path: "product",
+        },
+      })
+      .populate("user");
+    // const orderList = await Order.find();
 
     res.status(200).json(orderList);
   } catch (error) {
@@ -49,7 +51,7 @@ export const updateOrder = async (req, res, next) => {
       { new: true }
     );
 
-    res.status(200).json(order);
+    res.status(200).json({ status: 200, order });
   } catch (error) {
     next(error);
   }
@@ -63,9 +65,23 @@ export const deleteOrder = async (req, res, next) => {
       console.log("🚀 ~ file: order.js:108 ~ or ~ order:", order);
       if (order) {
         await order.orderItems.map(async (item) => {
-          await OrderItem.findByIdAndDelete(item);
+          console.log(
+            "🚀 ~ file: order.js:66 ~ awaitorder.orderItems.map ~ item:",
+            item
+          );
+          const order = await OrderItem.findByIdAndRemove({
+            _id: item,
+          });
+          console.log(
+            "🚀 ~ file: order.js:73 ~ awaitorder.orderItems.map ~ order:",
+            order
+          );
+          if (order) {
+            return res
+              .status(200)
+              .json({ status: 200, message: "Delete order successfully" });
+          }
         });
-        return res.status(200).json("Delete Success");
       } else {
         next(createError(401, "Order Failed"));
       }

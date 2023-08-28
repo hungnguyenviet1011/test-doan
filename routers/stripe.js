@@ -6,6 +6,7 @@ import { checkoutPayment } from "../controllers/stripe.js";
 import Order from "../models/Order.js";
 import OrderItem from "../models/OrderItem.js";
 import Product from "../models/Product.js";
+import Size from "../models/Size.js";
 
 dotenv.config();
 const stripe = Stripe(process.env.STRIPE_KEY);
@@ -22,10 +23,10 @@ const createOrder = async (customer, data) => {
     try {
       console.log("1111");
       const promies = item.map(async (order) => {
+        console.log("orrdererere", order);
         const productData = await Product.findByIdAndUpdate(
           {
             _id: order.cartId,
-            quantity: order.quantity,
           },
           {
             $inc: {
@@ -35,12 +36,26 @@ const createOrder = async (customer, data) => {
           },
           { new: true }
         );
-        if (productData) {
+        const sizeData = await Size.findByIdAndUpdate(
+          {
+            _id: order.sizeId,
+          },
+          {
+            $inc: {
+              quantity: -order.quantity,
+              selled: +order.quantity,
+            },
+          },
+          { new: true }
+        );
+        if (productData && sizeData) {
+          console.log("22221");
           return {
             status: "OK",
             message: "SUCCESS",
           };
         } else {
+          console.log("22229");
           return {
             status: "OK",
             message: "FAILURE",
@@ -50,19 +65,26 @@ const createOrder = async (customer, data) => {
       });
       console.log("2222");
       const result = await Promise.all(promies);
+      console.log(
+        "🚀 ~ file: stripe.js:65 ~ returnnewPromise ~ result:",
+        result
+      );
       const dataRes = result && result.filter((item) => item.id);
-      console.log("🚀 ~ file: stripe.js:54 ~ returnnewPromise ~ data:", data)
+      console.log(
+        "🚀 ~ file: stripe.js:54 ~ returnnewPromise ~ data:",
+        dataRes
+      );
       if (dataRes.length) {
-        console.log("33331111")
+        console.log("33331111");
         return {
           status: "OK",
-          message: `San phẩm với id ${data.join(", ")} không đủ hàng`,
+          message: `San phẩm với id ${data.id} không đủ hàng`,
         };
       } else {
-        console.log("3333")
+        console.log("3333");
         const orderItem = Promise.all(
           item.map(async (order) => {
-            console.log("🚀 ~ file: stripe.js:65 ~ item.map ~ order:", order)
+            console.log("🚀 ~ file: stripe.js:65 ~ item.map ~ order:", order);
             let orderItemNew = new OrderItem({
               quantity: order.quantity,
               product: order.cartId,
@@ -71,13 +93,19 @@ const createOrder = async (customer, data) => {
             });
 
             orderItemNew = await orderItemNew.save();
-            console.log("🚀 ~ file: stripe.js:74 ~ item.map ~ orderItemNew:", orderItemNew)
+            console.log(
+              "🚀 ~ file: stripe.js:74 ~ item.map ~ orderItemNew:",
+              orderItemNew
+            );
 
             return orderItemNew._id;
           })
         );
         const orderItemDB = await orderItem;
-        console.log("🚀 ~ file: stripe.js:79 ~ returnnewPromise ~ e:", orderItem)
+        console.log(
+          "🚀 ~ file: stripe.js:79 ~ returnnewPromise ~ e:",
+          orderItem
+        );
 
         const orderList = new Order({
           orderItems: orderItemDB,
@@ -127,39 +155,24 @@ router.post(
     }
 
     // Handle the event
-    if (eventType === "checkout.session.completed") {      
-      const payload = async () => {
-        const balance = await stripe.balance.retrieve({
-          stripeAccount: 'acct_1NFT25IGQxX8cRSA',
-        });  
-        console.log("🚀 ~ file: stripe.js:136 ~ balance:", balance)
-        
-        return balance
-      }
-      console.log("🚀 ~ file: stripe.js:132 ~ payload ~ payload:", payload)
-      
-      // stripe.customers
-      // .retrieve(data.customer)
-      //   .then((customer) => {
-      //     console.log(
-      //       "🚀 ~ file: stripe.js:53 ~ stripe.customers.retrieve ~ customer:",
-      //       customer
-      //     );
-      //     console.log("data", data);
+    if (eventType === "checkout.session.completed") {
+      stripe.customers
+        .retrieve(data.customer)
+        .then((customer) => {
+          console.log(
+            "🚀 ~ file: stripe.js:53 ~ stripe.customers.retrieve ~ customer:",
+            customer
+          );
+          console.log("data", data);
 
-      //     createOrder(customer, data);
-      //   })
-      //   .catch((err) => console.log(err));
+          createOrder(customer, data);
+        })
+        .catch((err) => console.log(err));
     }
 
     // Return a 200 res to acknowledge receipt of the event
     res.send();
   }
 );
-
-
-
-
-
 
 export default router;

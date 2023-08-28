@@ -18,19 +18,19 @@ const productSchema = new Schema(
     },
     new: {
       type: Boolean,
-      default: false,
+      default: true,
     },
-    size: {
-      type: [Object],
-      require: true,
-    },
+    size: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "size",
+      },
+    ],
     images: {
       type: [String],
     },
     quantity: {
       type: Number,
-      required: true,
-      min: 0
     },
     thumbnail: {
       type: String,
@@ -59,11 +59,11 @@ const productSchema = new Schema(
       require: true,
     },
     categories: {
-      type: [String],
-      ref: "category",
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "categories",
     },
-    selled: { 
-      type: Number 
+    selled: {
+      type: Number,
     },
   },
   { timestamps: true }
