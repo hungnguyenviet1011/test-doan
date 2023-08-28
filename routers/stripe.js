@@ -6,7 +6,6 @@ import { checkoutPayment } from "../controllers/stripe.js";
 import Order from "../models/Order.js";
 import OrderItem from "../models/OrderItem.js";
 import Product from "../models/Product.js";
-import Size from "../models/Size.js";
 
 dotenv.config();
 const stripe = Stripe(process.env.STRIPE_KEY);
@@ -31,24 +30,13 @@ const createOrder = async (customer, data) => {
           {
             $inc: {
               quantity: -order.quantity,
+              "size.quantity": -order.quantity,
               selled: +order.quantity,
             },
           },
           { new: true }
         );
-        const sizeData = await Size.findByIdAndUpdate(
-          {
-            _id: order.sizeId,
-          },
-          {
-            $inc: {
-              quantity: -order.quantity,
-              selled: +order.quantity,
-            },
-          },
-          { new: true }
-        );
-        if (productData && sizeData) {
+        if (productData) {
           console.log("22221");
           return {
             status: "OK",

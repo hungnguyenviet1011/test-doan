@@ -1,7 +1,6 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import slugify from "slugify";
-import Size from "../models/Size.js";
 import mongoose from "mongoose";
 
 export const createProduct = async (req, res, next) => {
@@ -18,23 +17,23 @@ export const createProduct = async (req, res, next) => {
   }
 
   try {
-    const sizeItem = Promise.all(
-      req.body.size.map(async (size) => {
-        let sizeOne = new Size({
-          size: size.size,
-          quantity: size.quantity,
-        });
-        sizeOne = await sizeOne.save();
+    // const sizeItem = Promise.all(
+    //   req.body.size.map(async (size) => {
+    //     let sizeOne = new Size({
+    //       size: size.size,
+    //       quantity: size.quantity,
+    //     });
+    //     sizeOne = await sizeOne.save();
 
-        return sizeOne._id;
-      })
-    );
+    //     return sizeOne._id;
+    //   })
+    // );
 
-    const sizeDB = await sizeItem;
+    // const sizeDB = await sizeItem;
 
     const product = new Product({
       ...req.body,
-      size: sizeDB,
+      // size: sizeDB,
     });
     const productDB = await product.save();
     try {
@@ -52,19 +51,19 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   const slugProduct = req.params.slug;
   try {
-    if (req.body.size) {
-      req.body.size.map(async (item) => {
-        console.log(
-          "🚀 ~ file: products.js:57 ~ req.body.size.map ~ item:",
-          item
-        );
-        return await Size.updateMany(
-          { _id: item._id },
-          { $set: { quantity: item.quantity } },
-          { new: true }
-        );
-      });
-    }
+    // if (req.body.size) {
+    //   req.body.size.map(async (item) => {
+    //     console.log(
+    //       "🚀 ~ file: products.js:57 ~ req.body.size.map ~ item:",
+    //       item
+    //     );
+    //     return await Size.updateMany(
+    //       { _id: item._id },
+    //       { $set: { quantity: item.quantity } },
+    //       { new: true }
+    //     );
+    //   });
+    // }
     const updateProduct = await Product.findOneAndUpdate(
       {
         slug: slugProduct,
@@ -90,13 +89,6 @@ export const deleteProduct = async (req, res, next) => {
         "🚀 ~ file: products.js:73 ~ awaitProduct.findByIdAndDelete ~ product:",
         productItem
       );
-      productItem.size.map(async (size) => {
-        console.log("LOP", size);
-        await Size.deleteMany({
-          _id: size,
-        });
-      });
-
       productItem?.categories.map(async (categories) => {
         const item = await Category.aggregate([
           {

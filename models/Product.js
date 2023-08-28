@@ -20,12 +20,9 @@ const productSchema = new Schema(
       type: Boolean,
       default: true,
     },
-    size: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "size",
-      },
-    ],
+    size: {
+      type: [Object],
+    },
     images: {
       type: [String],
     },
