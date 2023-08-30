@@ -23,14 +23,14 @@ const createOrder = async (customer, data) => {
       console.log("1111");
       const promies = item.map(async (order) => {
         console.log("orrdererere", order);
-        const productData = await Product.findByIdAndUpdate(
+        const productData = await Product.findOneAndUpdate(
           {
             _id: order.cartId,
           },
           {
             $inc: {
               quantity: -order.quantity,
-              "size.quantity": -order.quantity,
+              // "size.$.quantity": -order.quantity,
               selled: +order.quantity,
             },
           },

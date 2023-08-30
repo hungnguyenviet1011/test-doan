@@ -112,9 +112,132 @@ export const userOrder = async (req, res, next) => {
 };
 
 // GET MONTHLY IMCOME
+// ** So sanh thu nhap thang nay vs thang truoc
 export const monthlyIncome = async (req, res, next) => {
-  const productId = req.query.pid;
   const date = new Date();
   const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
-  const previousMonth = new Date(new Date().setMonth(lastMonth.getMonth - 1));
+  console.log(
+    "🚀 ~ file: order.js:119 ~ monthlyIncome ~ lastMonth:",
+    lastMonth
+  );
+  const previousMonth = new Date(new Date().setMonth(lastMonth.getMonth() - 1));
+  console.log(
+    "🚀 ~ file: order.js:121 ~ monthlyIncome ~ previousMonth:",
+    previousMonth
+  );
+
+  try {
+    const income = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: previousMonth },
+          // ...(productId && {
+          //   orderItems: { $elemMatch: { productId } },
+          // }),
+        },
+      },
+      {
+        $project: {
+          month: { $month: "$createdAt" },
+          sales: "$total",
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          total: { $sum: "$sales" },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+    return res.status(200).json(income);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ** Get Total Months
+export const getTotalMonth = async (req, res, next) => {
+  const date = new Date();
+  const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
+  console.log(
+    "🚀 ~ file: order.js:162 ~ getTotalMonth ~ lastMonth:",
+    lastMonth
+  );
+
+  try {
+    const data = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: lastMonth },
+        },
+      },
+      {
+        $project: {
+          month: { $month: "$createdAt" },
+          sales: "$total",
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          total: { $sum: "$sales" },
+        },
+      },
+    ]);
+    return res.status(200).json({ data: data[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ** getTotalQuantityMonth
+export const getQuantityOrderTotalMonth = async (req, res, next) => {
+  const date = new Date();
+  const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
+  console.log(
+    "🚀 ~ file: order.js:200 ~ getQuantityOrderTotalMonth ~ lastMonth:",
+    lastMonth
+  );
+  const previousMonth = new Date(date.setMonth(lastMonth.getMonth() - 1));
+  console.log(
+    "🚀 ~ file: order.js:202 ~ getQuantityOrderTotalMonth ~ previousMonth:",
+    previousMonth
+  );
+
+  console.log(
+    "🚀 ~ file: order.js:162 ~ getTotalMonth ~ lastMonth:",
+    lastMonth
+  );
+
+  try {
+    const data = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: previousMonth },
+        },
+      },
+      {
+        $project: {
+          month: { $month: "$createdAt" },
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          total: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          _id: 1,
+        },
+      },
+    ]);
+    return res.status(200).json({ data: data });
+  } catch (error) {
+    next(error);
+  }
 };

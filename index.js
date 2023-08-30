@@ -1,14 +1,15 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import cors from "cors";
+// ** Router
 import authRoute from "./routers/auth.js";
 import categoryRoute from "./routers/categories.js";
 import orderRoute from "./routers/orders.js";
 import productRoute from "./routers/products.js";
 import userRoute from "./routers/users.js";
 import stripeRouter from "./routers/stripe.js";
-import cors from "cors";
-import bodyParser from "body-parser";
+import newRouter from "./routers/news.js";
 
 const app = express();
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api/categories", categoryRoute);
 app.use("/api/users", userRoute);
 app.use("/api/products", productRoute);
 app.use("/api/orders", orderRoute);
+app.use("/api/news", newRouter);
 
 //handle middleware error
 app.use((err, req, res, next) => {

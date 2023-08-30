@@ -3,6 +3,9 @@ import {
   deleteOrder,
   getOrder,
   getOrders,
+  getQuantityOrderTotalMonth,
+  getTotalMonth,
+  monthlyIncome,
   updateOrder,
   userOrder,
 } from "../controllers/order.js";
@@ -14,6 +17,12 @@ router.put("/:id", updateOrder);
 router.delete("/:id", deleteOrder);
 
 router.get("/userorder/:userId", userOrder);
+
+router.get("/quantityorder", getQuantityOrderTotalMonth);
+
+router.get("/totalmonth", getTotalMonth);
+
+router.get("/income", monthlyIncome);
 
 router.get("/:id", getOrder);
 
