@@ -82,10 +82,6 @@ export const refreshToken = async (req, res, next) => {
       refreshToken,
       process.env.REFRESH_TOKEN
     );
-    console.log(
-      "🚀 ~ file: auth.js:81 ~ refreshToken ~ refreshTokenUser:",
-      refreshTokenUser
-    );
 
     if (!refreshTokenUser) {
       next(createError(403, "Token not authorization"));
