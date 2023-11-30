@@ -186,8 +186,11 @@ export const getTotalMonth = async (req, res, next) => {
           total: { $sum: "$sales" },
         },
       },
+      {
+        $sort: { _id: 1 },
+      },
     ]);
-    return res.status(200).json({ data: data[0] });
+    return res.status(200).json({ data: data[1] });
   } catch (error) {
     next(error);
   }

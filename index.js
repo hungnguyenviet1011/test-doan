@@ -10,6 +10,7 @@ import productRoute from "./routers/products.js";
 import userRoute from "./routers/users.js";
 import stripeRouter from "./routers/stripe.js";
 import newRouter from "./routers/news.js";
+import commentRouter from "./routers/comment.js";
 
 const app = express();
 dotenv.config();
@@ -38,6 +39,7 @@ app.use("/api/users", userRoute);
 app.use("/api/products", productRoute);
 app.use("/api/orders", orderRoute);
 app.use("/api/news", newRouter);
+app.use("/api/comment", commentRouter);
 
 //handle middleware error
 app.use((err, req, res, next) => {

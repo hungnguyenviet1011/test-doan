@@ -68,6 +68,10 @@ export const getCategoryBySlug = async (req, res, next) => {
 
   try {
     const category = await Category.findOne({ slug: categorySlug });
+    console.log(
+      "🚀 ~ file: categories.js:71 ~ getCategoryBySlug ~ category:",
+      category
+    );
     res.status(200).json(category);
   } catch (error) {
     next(error);

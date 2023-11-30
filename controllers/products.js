@@ -6,8 +6,8 @@ import mongoose from "mongoose";
 export const createProduct = async (req, res, next) => {
   const categoryId = req.body.categories;
   console.log(
-    "🚀 ~ file: products.js:8 ~ createProduct ~ categories:",
-    req.body.size
+    "🚀 ~ file: products.js:8 ~ createProduct ~ categoryId:",
+    categoryId
   );
 
   if (req.body.title) {
@@ -37,13 +37,16 @@ export const createProduct = async (req, res, next) => {
     });
     const productDB = await product.save();
     try {
-      await Category.findByIdAndUpdate(categoryId, {
-        $push: { products: product._id },
-      });
+      categoryId.map(
+        async (item) =>
+          await Category.findByIdAndUpdate(item, {
+            $push: { products: product._id },
+          })
+      );
+      res.status(200).json({ status: 200, productDB });
     } catch (error) {
       next(error);
     }
-    res.status(200).json({ status: 200, productDB });
   } catch (error) {
     next(error);
   }
@@ -156,7 +159,7 @@ export const getProducts = async (req, res, next) => {
   let categories = new mongoose.Types.ObjectId(req.query.categories);
   console.log(
     "🚀 ~ file: products.js:107 ~ getProducts ~ categories:",
-    typeof categories
+    categories
   );
   const newProduct = req.query.new;
   console.log(
@@ -189,7 +192,7 @@ export const getProducts = async (req, res, next) => {
       query = Product.aggregate([
         {
           $match: {
-            categories: categories,
+            categories: { $elemMatch: { $eq: categories } },
             price: { $gt: min, $lt: max },
           },
         },
@@ -201,7 +204,6 @@ export const getProducts = async (req, res, next) => {
             as: "categories",
           },
         },
-
         {
           $facet: {
             metaData: [
