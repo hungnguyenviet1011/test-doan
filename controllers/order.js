@@ -190,7 +190,8 @@ export const getTotalMonth = async (req, res, next) => {
         $sort: { _id: 1 },
       },
     ]);
-    return res.status(200).json({ data: data[1] });
+    console.log("🚀 ~ file: order.js:193 ~ getTotalMonth ~ data:", data);
+    return res.status(200).json({ data: data[0] });
   } catch (error) {
     next(error);
   }
